@@ -5,10 +5,14 @@ from google.oauth2 import service_account
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEY_PATH = os.path.join(BASE_DIR, 'key.json')
-BUCKET_NAME = 'bkt-cloud-read'
+BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'bkt-cloud-read')
 
-_credentials = service_account.Credentials.from_service_account_file(KEY_PATH)
-_client = storage.Client(credentials=_credentials, project=_credentials.project_id)
+if os.environ.get('GAE_ENV', '').startswith('standard'):
+    _client = storage.Client()
+else:
+    _credentials = service_account.Credentials.from_service_account_file(KEY_PATH)
+    _client = storage.Client(credentials=_credentials, project=_credentials.project_id)
+
 _bucket = _client.bucket(BUCKET_NAME)
 
 

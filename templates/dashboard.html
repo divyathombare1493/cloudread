@@ -134,6 +134,23 @@
             color: #fff;
             box-shadow: 0 6px 15px rgba(118, 75, 162, 0.3);
         }
+        .delete-form {
+            margin-top: 0.5rem;
+        }
+        .delete-btn {
+            width: 100%;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 0.45rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #b02a37;
+        }
         .empty-state {
             text-align: center;
             padding: 2rem;
@@ -178,6 +195,14 @@
                     <div class="ebook-title">{{ book[1] }}</div>
                     <div class="ebook-genre">{{ book[6] or 'Uncategorized' }}</div>
                     <a class="ebook-link" href="{{ book[2] }}#toolbar=0" target="_blank" rel="noopener">Read</a>
+                    {% if user_role_id == 0 %}
+                        <form method="post" class="delete-form"
+                              action="{{ url_for('delete_book') }}"
+                              onsubmit="return confirm('Delete this book from the catalog?');">
+                            <input type="hidden" name="ebook_id" value="{{ book[7] }}">
+                            <button type="submit" class="delete-btn">Delete</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -186,6 +211,7 @@
 </div>
 
 <script>
+    const USER_ROLE_ID = {{ user_role_id|tojson }};
     const nameInput = document.getElementById('searchName');
     const genreInput = document.getElementById('searchGenre');
     const grid = document.getElementById('ebookGrid');
@@ -204,12 +230,19 @@
             card.className = 'ebook-card';
             card.dataset.name = (b.ebookName || '').toLowerCase();
             card.dataset.genre = (b.ebookCategoryName || '').toLowerCase();
+            const deleteHtml = (USER_ROLE_ID === 0 && b.ebookId != null)
+                ? `<form method="post" class="delete-form" action="/admin/delete-book" onsubmit="return confirm('Delete this book from the catalog?');">
+                        <input type="hidden" name="ebook_id" value="${escapeHtml(b.ebookId)}">
+                        <button type="submit" class="delete-btn">Delete</button>
+                   </form>`
+                : '';
             card.innerHTML = `
                 <img src="${escapeHtml(b.ebookCoverPageLink)}" alt="${escapeHtml(b.ebookName)} cover">
                 <div class="ebook-body">
                     <div class="ebook-title">${escapeHtml(b.ebookName)}</div>
                     <div class="ebook-genre">${escapeHtml(b.ebookCategoryName || 'Uncategorized')}</div>
                     <a class="ebook-link" href="${escapeHtml(b.ebookLink)}#toolbar=0" target="_blank" rel="noopener">Read</a>
+                    ${deleteHtml}
                 </div>
             `;
             grid.insertBefore(card, emptyState);

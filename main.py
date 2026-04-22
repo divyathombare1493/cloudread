@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, redirect, url_for, flash, session, request, jsonify
 import bcrypt
 from flask_mysqldb import MySQL
@@ -8,11 +9,18 @@ from validate_add_book_form import AddBookForm
 from gcs import upload_file
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
-app.config['MYSQL_HOST'] = '127.0.0.1'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Kunal@123'
-app.config['MYSQL_DB'] = 'mydatabase'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '__FILL_IN__')
+
+app.config['MYSQL_UNIX_SOCKET'] = f"/cloudsql/{os.environ['CLOUD_SQL_CONNECTION_NAME']}"
+app.config['MYSQL_USER']     = os.environ['MYSQL_USER']
+app.config['MYSQL_PASSWORD'] = os.environ['MYSQL_PASSWORD']
+app.config['MYSQL_DB']       = os.environ['MYSQL_DB']
+
+# app.config['SECRET_KEY'] = 'your_secret_key'
+# app.config['MYSQL_HOST'] = '127.0.0.1'
+# app.config['MYSQL_USER'] = 'root'
+# app.config['MYSQL_PASSWORD'] = 'Kunal@123'
+# app.config['MYSQL_DB'] = 'mydatabase'
 
 mysql = MySQL(app)
 
@@ -30,6 +38,15 @@ def register():
         last_name = form.last_name.data
         email = form.email.data
         password = form.password.data
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT 1 FROM user_info WHERE email=%s", (email,))
+        existing = cursor.fetchone()
+        cursor.close()
+        if existing:
+            form.email.errors.append('An account with this email already exists.')
+            return render_template('register.html', form=form)
+
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         userRolId = 1
         isActive = 1
@@ -92,7 +109,7 @@ def dashboard():
         cursor.execute("""
             SELECT e.ebookCategoryId, e.ebookName, e.ebookLink,
                 e.ebookCoverPageLink, e.isActive, e.createdDate,
-                c.ebookCategoryName
+                c.ebookCategoryName, e.ebookId
             FROM ebooks e
             LEFT JOIN ebook_category c
                 ON c.ebookCategoryId = e.ebookCategoryId
@@ -128,7 +145,7 @@ def search_books():
         cursor.execute("""
             SELECT e.ebookCategoryId, e.ebookName, e.ebookLink,
                    e.ebookCoverPageLink, e.isActive, e.createdDate,
-                   c.ebookCategoryName
+                   c.ebookCategoryName, e.ebookId
             FROM ebooks e
             LEFT JOIN ebook_category c
                 ON c.ebookCategoryId = e.ebookCategoryId
@@ -142,7 +159,8 @@ def search_books():
             'ebookName': r[1],
             'ebookLink': r[2],
             'ebookCoverPageLink': r[3],
-            'ebookCategoryName': r[6]
+            'ebookCategoryName': r[6],
+            'ebookId': r[7] if user_role_id == 0 and len(r) > 7 else None,
         })
     return jsonify(books)
 
@@ -168,7 +186,7 @@ def search_by_genre():
         cursor.execute("""
             SELECT e.ebookCategoryId, e.ebookName, e.ebookLink,
                    e.ebookCoverPageLink, e.isActive, e.createdDate,
-                   c.ebookCategoryName
+                   c.ebookCategoryName, e.ebookId
             FROM ebooks e
             INNER JOIN ebook_category c
                 ON c.ebookCategoryId = e.ebookCategoryId
@@ -184,6 +202,7 @@ def search_by_genre():
             'ebookLink': r[2],
             'ebookCoverPageLink': r[3],
             'ebookCategoryName': r[6],
+            'ebookId': r[7] if user_role_id == 0 and len(r) > 7 else None,
         })
     return jsonify(books)
 
@@ -261,6 +280,21 @@ def add_book():
         return redirect(url_for('dashboard'))
 
     return render_template('add_book.html', form=form)
+
+
+@app.route('/admin/delete-book', methods=['POST'])
+def delete_book():
+    if session.get('user_role_id') != 0:
+        return redirect(url_for('dashboard'))
+    ebook_id = request.form.get('ebook_id', type=int)
+    if not ebook_id:
+        return redirect(url_for('dashboard'))
+    cursor = mysql.connection.cursor()
+    cursor.execute("UPDATE ebooks SET isActive = 0 WHERE ebookId = %s", (ebook_id,))
+    mysql.connection.commit()
+    cursor.close()
+    flash('Book removed from catalog.')
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/logout')

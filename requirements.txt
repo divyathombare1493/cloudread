@@ -1,0 +1,9 @@
+Flask
+Flask-WTF
+WTForms
+email-validator
+Flask-MySQLdb
+mysqlclient
+bcrypt
+google-cloud-storage
+gunicorn
