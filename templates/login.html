@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+        }
+        .auth-card h2 {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        .auth-subtitle {
+            color: #6c757d;
+            margin-bottom: 1.75rem;
+        }
+        .form-control {
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+        }
+        .form-control:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.15);
+        }
+        .btn-primary-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: #fff;
+            padding: 0.65rem;
+            border-radius: 8px;
+            font-weight: 500;
+            width: 100%;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-primary-gradient:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(118, 75, 162, 0.35);
+            color: #fff;
+        }
+        .error-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.35rem 0 0 0;
+            color: #dc3545;
+            font-size: 0.875rem;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #6c757d;
+        }
+        .auth-footer a {
+            color: #764ba2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="auth-card">
+    <h2>Welcome back</h2>
+    <p class="auth-subtitle">Please sign in to your account</p>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="alert alert-danger">
+            {% for message in messages %}
+                <div>{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('login') }}" method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.email.label(for="email", class="form-label") }}
+            {{ form.email(id="email", class="form-control", placeholder="you@example.com") }}
+            {% if form.email.errors %}
+                <ul class="error-list">
+                    {% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.password.label(for="password", class="form-label") }}
+            {{ form.password(id="password", class="form-control", placeholder="••••••••") }}
+            {% if form.password.errors %}
+                <ul class="error-list">
+                    {% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        {{ form.submit(class="btn-primary-gradient mt-2") }}
+    </form>
+
+    <div class="auth-footer">
+        Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+    </div>
+</div>
+</body>
+</html>
